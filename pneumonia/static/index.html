@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pneumonia X-ray Classifier</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5d6b7c; --line:#dde2e8;
+          --ok:#1a7f4b; --bad:#c0392b; --warn:#b7791f; --accent:#2457c5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12161c; --card:#1b212a; --text:#e8ecf1; --muted:#9aa6b5; --line:#2c3541;
+            --ok:#4cc38a; --bad:#ff7b6b; --warn:#e3b04b; --accent:#7fa6ff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; } h2 { font-size:1.05rem; margin:0 0 12px; }
+  .sub { color:var(--muted); margin:0 0 16px; }
+  .warn { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--bad); padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:.92rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  .row { display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; }
+  .grow { flex:1 1 280px; min-width:240px; }
+  label.f { display:block; font-size:.85rem; color:var(--muted); margin-bottom:2px; }
+  select, input[type=number], input[type=range] { font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+  input[type=range] { padding:0; width:100%; accent-color:var(--accent); }
+  button, .btn { font:inherit; border-radius:8px; padding:8px 14px; cursor:pointer; border:1px solid var(--accent); background:transparent; color:var(--accent); display:inline-block; }
+  button.primary, label.btn.primary { background:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  button:focus-visible, select:focus-visible, input:focus-visible, .thumb:focus-visible, .tab:focus-visible { outline:3px solid var(--text); outline-offset:2px; }
+  .stats { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .stat { flex:1 1 90px; border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  .stat b { display:block; font-size:1.1rem; } .stat span { color:var(--muted); font-size:.8rem; }
+  .cm { display:grid; grid-template-columns:auto 1fr 1fr; gap:4px; font-size:.9rem; text-align:center; margin-top:10px; }
+  .cm div { padding:6px; border-radius:6px; background:var(--bg); border:1px solid var(--line); }
+  .cm .h { background:none; border:0; color:var(--muted); font-size:.8rem; }
+  .tabs { display:flex; gap:6px; margin:0 0 12px; flex-wrap:wrap; }
+  .tab { border:1px solid var(--line); background:var(--card); color:var(--text); padding:8px 14px; border-radius:99px; cursor:pointer; font:inherit; }
+  .tab[aria-selected=true] { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
+  .thumb { position:relative; border:3px solid var(--line); border-radius:8px; padding:0; background:#000; cursor:pointer; overflow:hidden; }
+  .thumb.ok { border-color:var(--ok); } .thumb.bad { border-color:var(--bad); } .thumb.sel { box-shadow:0 0 0 3px var(--accent); }
+  .thumb img { width:100%; display:block; }
+  .thumb i { position:absolute; right:3px; bottom:3px; font-style:normal; font-size:.7rem; background:rgba(0,0,0,.75); color:#fff; padding:0 5px; border-radius:4px; }
+  .preview { width:260px; height:260px; background:#000; border-radius:8px; object-fit:contain; display:block; }
+  .tiny { width:72px; height:72px; image-rendering:pixelated; border-radius:6px; background:#000; display:block; margin-top:6px; }
+  .pill { display:inline-block; padding:2px 12px; border-radius:99px; font-weight:600; border:1px solid currentColor; font-size:.9rem; }
+  .pill.ok { color:var(--ok); } .pill.bad { color:var(--bad); } .pill.warn2 { color:var(--warn); }
+  .bar { height:12px; border-radius:6px; background:var(--line); overflow:hidden; margin:8px 0 4px; } .bar > div { height:100%; background:var(--accent); }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; } th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; } td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .figs { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; } .figs img { width:100%; border-radius:8px; background:#fff; }
+  .head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  input[type=file] { position:absolute; opacity:0; width:1px; height:1px; }
+  canvas { width:100%; max-width:300px; aspect-ratio:1; background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pneumonia X-ray Classifier</h1>
+  <p class="sub">Course project demo: small CNNs trained on PneumoniaMNIST (28&times;28 chest X-rays, normal vs pneumonia).</p>
+  <div class="warn" role="note"><b>Research / education only.</b> Not a medical device; never use it for diagnosis.</div>
+
+  <section class="card" aria-labelledby="h-ctrl">
+    <h2 id="h-ctrl">Model and decision threshold</h2>
+    <div class="row">
+      <div class="grow">
+        <label class="f" for="model">Model</label>
+        <select id="model" style="width:100%"></select>
+        <label class="f" for="thr" style="margin-top:12px">Decision threshold: <b id="thrval">0.50</b> (predict pneumonia if probability &ge; threshold)</label>
+        <input type="range" id="thr" min="0.01" max="0.99" step="0.01" value="0.5">
+        <p class="muted" style="margin:6px 0 0">Lower threshold: fewer missed pneumonia cases but more false alarms. Metrics below are on the 624 held-out test images. Note: picking the threshold that looks best here would be tuning on the test set, so in the report the threshold is chosen on validation data only.</p>
+        <div class="stats" id="stats" aria-live="polite"></div>
+        <div class="cm" id="cm"></div>
+      </div>
+      <div>
+        <canvas id="roc" width="300" height="300" role="img" aria-label="ROC curve with the current threshold marked"></canvas>
+        <p class="muted" style="margin:4px 0 0;text-align:center">ROC curve (dot = current threshold)</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="t-explore" aria-selected="true" aria-controls="p-explore">Explore images</button>
+    <button class="tab" role="tab" id="t-results" aria-selected="false" aria-controls="p-results">Results dashboard</button>
+    <button class="tab" role="tab" id="t-batch" aria-selected="false" aria-controls="p-batch">Batch upload</button>
+  </div>
+
+  <!-- ===== Explore ===== -->
+  <div id="p-explore" role="tabpanel" aria-labelledby="t-explore">
+    <section class="card">
+      <div class="head">
+        <h2 style="margin:0">Test-set images</h2>
+        <div class="row" style="gap:8px;align-items:flex-end">
+          <div><label class="f" for="flt">Show</label>
+            <select id="flt"><option value="all">All images</option><option value="normal">True normal</option><option value="pneumonia">True pneumonia</option>
+              <option value="wrong">Only mistakes</option><option value="fp">False alarms (normal &rarr; pneumonia)</option><option value="fn">Missed pneumonia</option></select></div>
+          <div><label class="f" for="jump">Image #</label><input type="number" id="jump" min="0" max="623" style="width:84px" placeholder="0-623"></div>
+          <button id="go" type="button">Go</button>
+          <button id="shuffle" type="button">Shuffle</button>
+        </div>
+      </div>
+      <p class="muted" id="count" aria-live="polite"></p>
+      <div class="grid" id="grid" role="list"></div>
+      <div class="row" style="margin-top:12px;gap:8px"><button id="prev" type="button">&larr; Previous</button><button id="next" type="button">Next &rarr;</button>
+        <span class="muted" id="pageinfo" style="align-self:center"></span></div>
+      <p class="muted">Green border: model correct at the current threshold, red: wrong. Images are shown at 224&times;224 for clarity; the models only see 28&times;28.</p>
+    </section>
+
+    <section class="card" aria-labelledby="h-pred">
+      <h2 id="h-pred">Prediction</h2>
+      <div class="row">
+        <div>
+          <img class="preview" id="preview" alt="Selected X-ray" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+          <label class="muted" style="display:block;margin-top:8px"><input type="checkbox" id="cam"> Show Grad-CAM heatmap</label>
+          <div id="tinywrap"></div>
+        </div>
+        <div class="grow" id="result" aria-live="polite"><span class="muted">Select an image or upload your own below.</span></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-up">
+      <h2 id="h-up">Upload your own image</h2>
+      <p class="muted">Converted to grayscale and shrunk to 28&times;28. Images from other sources look different from the training data, so treat the output as unreliable.</p>
+      <label class="btn primary">Choose image<input type="file" id="file" accept="image/*"></label>
+    </section>
+  </div>
+
+  <!-- ===== Results ===== -->
+  <div id="p-results" role="tabpanel" aria-labelledby="t-results" hidden>
+    <section class="card"><h2>Demo models on the test set (live, at the current threshold)</h2>
+      <div style="overflow-x:auto"><table id="live"></table></div>
+      <p class="muted">These are single saved models (seed 0) used by this demo, so they can differ slightly from the multi-seed averages below.</p></section>
+    <section class="card"><h2>Experiment results from the report (mean &plusmn; std over seeds, threshold 0.5)</h2>
+      <div style="overflow-x:auto"><table id="exp"></table></div></section>
+    <section class="card"><h2>Figures</h2>
+      <div class="figs" id="figs"></div></section>
+  </div>
+
+  <!-- ===== Batch ===== -->
+  <div id="p-batch" role="tabpanel" aria-labelledby="t-batch" hidden>
+    <section class="card"><h2>Batch upload</h2>
+      <p class="muted">Pick several images; each is classified by every demo model. The prediction column uses the model and threshold selected above.</p>
+      <label class="btn primary">Choose images<input type="file" id="files" accept="image/*" multiple></label>
+      <button id="csv" type="button" disabled style="margin-left:8px">Download CSV</button>
+      <p class="muted" id="bstatus" aria-live="polite"></p>
+      <div style="overflow-x:auto"><table id="btable"></table></div></section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const pct = x => (100 * x).toFixed(1) + '%';
+const j = async url => (await fetch(url)).json();
+const state = { model: null, t: 0.5, page: 0, shuffle: false, sel: null, models: [], upload: null, lastPred: null };
+const PAGE = 24;
+const q = () => `model=${state.model}&t=${state.t}`;
+
+// ---------- model + threshold panel
+async function init() {
+  const info = await j('/api/models');
+  state.models = info.models; state.model = info.default;
+  $('model').innerHTML = info.models.map(m => `<option value="${m.id}">${m.label}</option>`).join('');
+  $('model').value = state.model;
+  await refreshAll();
+}
+async function refreshMetrics() {
+  const m = await j(`/api/threshold?${q()}`);
+  const items = [['Accuracy', pct(m.accuracy)], ['Precision', pct(m.precision)], ['Recall', pct(m.recall)], ['Specificity', pct(m.specificity)], ['F1', m.f1.toFixed(3)], ['ROC-AUC', m.auc.toFixed(3)]];
+  $('stats').innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  $('cm').innerHTML = `<div class="h"></div><div class="h">Predicted normal</div><div class="h">Predicted pneumonia</div>
+    <div class="h">True normal</div><div>${m.tn}</div><div style="color:var(--bad)">${m.fp} false alarms</div>
+    <div class="h">True pneumonia</div><div style="color:var(--bad)">${m.fn} missed</div><div>${m.tp}</div>`;
+  drawRoc(m);
+}
+let rocData = null, rocModel = null;
+async function drawRoc(m) {
+  if (rocModel !== state.model) { rocData = await j(`/api/roc?model=${state.model}`); rocModel = state.model; }
+  const c = $('roc'), g = c.getContext('2d'), W = c.width, pad = 28, S = W - 2 * pad;
+  const css = getComputedStyle(document.documentElement);
+  g.clearRect(0, 0, W, W); g.strokeStyle = css.getPropertyValue('--line'); g.lineWidth = 1;
+  g.strokeRect(pad, pad, S, S); g.setLineDash([4, 4]); g.beginPath(); g.moveTo(pad, W - pad); g.lineTo(W - pad, pad); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = css.getPropertyValue('--accent'); g.lineWidth = 2; g.beginPath();
+  rocData.fpr.forEach((x, i) => { const px = pad + x * S, py = W - pad - rocData.tpr[i] * S; i ? g.lineTo(px, py) : g.moveTo(px, py); }); g.stroke();
+  g.fillStyle = css.getPropertyValue('--bad'); g.beginPath(); g.arc(pad + (1 - m.specificity) * S, W - pad - m.recall * S, 6, 0, 7); g.fill();
+  g.fillStyle = css.getPropertyValue('--muted'); g.font = '12px system-ui';
+  g.fillText('False positive rate', W / 2 - 45, W - 8); g.save(); g.translate(12, W / 2 + 40); g.rotate(-Math.PI / 2); g.fillText('True positive rate', 0, 0); g.restore();
+  g.fillText('AUC ' + m.auc.toFixed(3), W - pad - 70, W - pad - 10);
+}
+$('model').onchange = e => { state.model = e.target.value; state.page = 0; refreshAll(); };
+let tmr;
+$('thr').oninput = e => { state.t = +e.target.value; $('thrval').textContent = state.t.toFixed(2); clearTimeout(tmr); tmr = setTimeout(refreshAll, 150); };
+async function refreshAll() {
+  await Promise.all([refreshMetrics(), loadGrid(), state.sel !== null ? showTest(state.sel) : Promise.resolve(), $('p-results').hidden ? 0 : loadResults()]);
+}
+
+// ---------- explore grid
+async function loadGrid() {
+  const url = `/api/samples?${q()}&filter=${$('flt').value}&n=${PAGE}&` + (state.shuffle ? 'shuffle=1' : `page=${state.page}`);
+  const r = await j(url);
+  $('count').textContent = `${r.total} image${r.total === 1 ? '' : 's'} match this filter at the current threshold.`;
+  const grid = $('grid'); grid.innerHTML = '';
+  for (const it of r.items) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'thumb ' + (it.pred === it.truth ? 'ok' : 'bad') + (it.i === state.sel ? ' sel' : ''); b.setAttribute('role', 'listitem');
+    b.setAttribute('aria-label', `Test image ${it.i}, true ${it.truth}, predicted ${it.pred}`);
+    b.innerHTML = `<img src="/api/test/${it.i}.png" alt=""><i>#${it.i}</i>`;
+    b.onclick = () => { state.sel = it.i; state.upload = null; showTest(it.i); document.querySelectorAll('.thumb').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); };
+    grid.appendChild(b);
+  }
+  const pages = Math.max(1, Math.ceil(r.total / PAGE));
+  $('pageinfo').textContent = state.shuffle ? 'random sample' : `page ${state.page + 1} of ${pages}`;
+  $('prev').disabled = state.shuffle || state.page === 0; $('next').disabled = state.shuffle || state.page + 1 >= pages;
+}
+$('flt').onchange = () => { state.page = 0; state.shuffle = false; loadGrid(); };
+$('prev').onclick = () => { state.page--; loadGrid(); };
+$('next').onclick = () => { state.page++; loadGrid(); };
+$('shuffle').onclick = () => { state.shuffle = true; loadGrid(); };
+$('go').onclick = () => { const v = parseInt($('jump').value); if (v >= 0 && v <= 623) { state.sel = v; state.upload = null; showTest(v); } };
+
+// ---------- prediction panel
+function setImage() {
+  const on = $('cam').checked;
+  if (state.upload) { $('preview').src = on ? state.upload.cam : state.upload.url; $('tinywrap').innerHTML = ''; return; }
+  if (state.sel === null) return;
+  $('preview').src = on ? `/api/cam_test/${state.sel}.png?${q()}` : `/api/test/${state.sel}.png`;
+  $('tinywrap').innerHTML = `<img class="tiny" src="/api/test/${state.sel}.png?small=1" alt="28 by 28 version, as seen by the models"><span class="muted">Model input (28&times;28)</span>`;
+}
+$('cam').onchange = () => { setImage(); if (state.lastPred) $('result').querySelectorAll('.camnote').forEach(n => n.hidden = !$('cam').checked); };
+function resultHtml(r, truth, all) {
+  state.lastPred = r;
+  const isPn = r.pred === 'Pneumonia';
+  let h = `<p style="margin:0 0 6px">${$('model').selectedOptions[0].text} says <span class="pill ${isPn ? 'bad' : 'ok'}">${r.pred}</span></p>
+    <div class="bar" role="img" aria-label="Pneumonia probability ${pct(r.prob)}"><div style="width:${100 * r.prob}%"></div></div>
+    <p class="muted" style="margin:0 0 8px">Pneumonia probability ${pct(r.prob)} (threshold ${state.t.toFixed(2)})</p>`;
+  if (truth) h += `<p style="margin:0 0 8px">True label: <b>${truth}</b> &mdash; <span class="pill ${r.correct ? 'ok' : 'bad'}">${r.correct ? 'correct' : 'wrong'}</span></p>`;
+  if (all) h += `<table><tr><th>Model comparison</th><th class="n">P(pneumonia)</th><th>Prediction</th>${truth ? '<th></th>' : ''}</tr>` +
+    all.map(a => `<tr><td>${a.label}</td><td class="n">${pct(a.prob)}</td><td>${a.pred}</td>${truth ? `<td style="color:var(--${a.correct ? 'ok' : 'bad'})">${a.correct ? '&#10003;' : '&#10007;'}</td>` : ''}</tr>`).join('') + '</table>';
+  h += `<p class="muted camnote" ${$('cam').checked ? '' : 'hidden'}>Grad-CAM: warm colours mark regions that push the model towards &ldquo;pneumonia&rdquo;. It shows where the model looks, not that it is right.</p>`;
+  h += `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)"><button id="verify" type="button">Ask the local LLM (free) for a comment</button><div id="llmout" class="muted" aria-live="polite" style="margin-top:8px"></div></div>`;
+  $('result').innerHTML = h; $('verify').onclick = verify;
+}
+async function showTest(i) {
+  setImage();
+  const [r, all] = await Promise.all([j(`/api/predict_test/${i}?${q()}`), j(`/api/compare_test/${i}?t=${state.t}`)]);
+  resultHtml(r, r.truth, all);
+}
+async function verify() {
+  const out = $('llmout'), btn = $('verify'); btn.disabled = true; out.textContent = 'Asking the local LLM… (first call can take a minute)';
+  const res = state.upload ? await fetch(`/api/verify?${q()}`, { method: 'POST', body: state.upload.file }) : await fetch(`/api/verify_test/${state.sel}?${q()}`);
+  const v = await res.json(); btn.disabled = false;
+  if (v.error) { out.textContent = v.error; return; }
+  let html;
+  if (v.mode === 'vision') {
+    const cnn = state.lastPred.pred.toLowerCase(), llm = v.impression;
+    const ag = llm === 'uncertain' ? 'LLM is uncertain' : (llm === cnn ? 'Agrees with the CNN' : 'Disagrees with the CNN');
+    html = `<p style="margin:0 0 4px">${v.model} looked at the image: <b>${v.impression}</b> (${v.confidence}) <span class="pill ${llm === cnn ? 'ok' : llm === 'uncertain' ? 'warn2' : 'bad'}">${ag}</span></p><p style="margin:0 0 4px">${v.findings}</p>`;
+  } else {
+    html = `<p style="margin:0 0 4px"><b>${v.model}</b> is text-only: it cannot see the image, it only comments on the CNN output.</p><p style="margin:0 0 4px">${v.findings}</p>`;
+  }
+  out.innerHTML = html + '<p style="margin:0">Small LLMs are not validated for radiology: sanity check only, never for medical decisions.</p>';
+}
+$('file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  state.sel = null; document.querySelectorAll('.thumb').forEach(x => x.classList.remove('sel'));
+  const url = URL.createObjectURL(f);
+  const camRes = await fetch(`/api/cam?${q()}`, { method: 'POST', body: f });
+  state.upload = { file: f, url, cam: camRes.ok ? URL.createObjectURL(await camRes.blob()) : url };
+  setImage();
+  const res = await fetch(`/api/predict?${q()}`, { method: 'POST', body: f }); const r = await res.json();
+  if (r.error) { $('result').textContent = r.error; return; }
+  const all = r.all.map(a => ({ ...a, pred: a.prob >= state.t ? 'Pneumonia' : 'Normal' }));
+  resultHtml(r, null, all);
+  $('result').insertAdjacentHTML('afterbegin', '<p class="muted">Uploaded image: no true label available.</p>');
+};
+
+// ---------- results dashboard
+async function loadResults() {
+  const models = (await j('/api/models')).models;
+  const live = await Promise.all(models.map(m => j(`/api/threshold?model=${m.id}&t=${state.t}`).then(r => ({ ...r, label: m.label }))));
+  $('live').innerHTML = '<tr><th>Model</th><th class="n">Accuracy</th><th class="n">Precision</th><th class="n">Recall</th><th class="n">Specificity</th><th class="n">F1</th><th class="n">ROC-AUC</th><th class="n">FP</th><th class="n">FN</th></tr>' +
+    live.map(r => `<tr><td>${r.label}</td><td class="n">${r.accuracy.toFixed(3)}</td><td class="n">${r.precision.toFixed(3)}</td><td class="n">${r.recall.toFixed(3)}</td><td class="n">${r.specificity.toFixed(3)}</td><td class="n">${r.f1.toFixed(3)}</td><td class="n">${r.auc.toFixed(3)}</td><td class="n">${r.fp}</td><td class="n">${r.fn}</td></tr>`).join('');
+  const exp = await j('/api/results');
+  const f = (r, k) => `${r[k].toFixed(3)} &plusmn; ${r[k + '_sd'].toFixed(3)}`;
+  $('exp').innerHTML = '<tr><th>Experiment</th><th class="n">Seeds</th><th class="n">Accuracy</th><th class="n">Recall</th><th class="n">Specificity</th><th class="n">F1</th><th class="n">ROC-AUC</th></tr>' +
+    exp.map(r => `<tr><td>${r.name}</td><td class="n">${r.seeds}</td><td class="n">${f(r, 'accuracy')}</td><td class="n">${f(r, 'recall')}</td><td class="n">${f(r, 'specificity')}</td><td class="n">${f(r, 'f1')}</td><td class="n">${f(r, 'roc_auc')}</td></tr>`).join('');
+  const figs = [['samples.png', 'Sample training images'], ['curves_deep_cnn_aug.png', 'Training curves: Deep CNN + augmentation'], ['curves_basic_cnn.png', 'Training curves: Basic CNN'],
+    ['roc.png', 'ROC curves, all experiments (seed 0)'], ['cm_deep_cnn_aug.png', 'Confusion matrix, Deep CNN + augmentation'], ['errors.png', 'Error examples']];
+  $('figs').innerHTML = figs.map(([n, c]) => `<figure style="margin:0"><img src="/figures/${n}" alt="${c}" loading="lazy"><figcaption class="muted">${c}</figcaption></figure>`).join('');
+}
+
+// ---------- batch upload
+let batchRows = [];
+$('files').onchange = async e => {
+  const files = [...e.target.files]; batchRows = []; $('csv').disabled = true;
+  const names = state.models.map(m => m.label);
+  $('btable').innerHTML = '';
+  for (let k = 0; k < files.length; k++) {
+    $('bstatus').textContent = `Classifying ${k + 1} of ${files.length}…`;
+    const r = await (await fetch(`/api/predict?${q()}`, { method: 'POST', body: files[k] })).json();
+    batchRows.push(r.error ? { file: files[k].name, error: r.error } : { file: files[k].name, prob: r.prob, pred: r.pred, all: r.all });
+  }
+  $('bstatus').textContent = `Done: ${files.length} image(s). Prediction uses ${$('model').selectedOptions[0].text} at threshold ${state.t.toFixed(2)}.`;
+  const tb = $('btable');
+  const head = tb.insertRow(); ['File', 'P(pneumonia)', 'Prediction', ...names.map(n => n + ' P')].forEach((h, i) => { const c = document.createElement('th'); c.textContent = h; if (i) c.className = 'n'; head.appendChild(c); });
+  for (const r of batchRows) {
+    const row = tb.insertRow();
+    const cells = r.error ? [r.file, r.error, '', ...names.map(() => '')] : [r.file, pct(r.prob), r.pred, ...r.all.map(a => pct(a.prob))];
+    cells.forEach((v, i) => { const c = row.insertCell(); c.textContent = v; if (i) c.className = 'n'; });
+  }
+  $('csv').disabled = !batchRows.length;
+};
+$('csv').onclick = () => {
+  const names = state.models.map(m => m.id);
+  const lines = [['file', 'model', 'threshold', 'prob_pneumonia', 'prediction', ...names.map(n => 'prob_' + n)].join(',')];
+  for (const r of batchRows) if (!r.error) lines.push([JSON.stringify(r.file), state.model, state.t, r.prob.toFixed(5), r.pred, ...r.all.map(a => a.prob.toFixed(5))].join(','));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' })); a.download = 'predictions.csv'; a.click();
+};
+
+// ---------- tabs
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  for (const k of ['explore', 'results', 'batch']) $('p-' + k).hidden = ('t-' + k) !== t.id;
+  if (t.id === 't-results') loadResults();
+});
+init();
+</script>
+</body>
+</html>

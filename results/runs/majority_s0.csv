@@ -1,0 +1,2 @@
+name,seed,test_thr05__accuracy,test_thr05__precision,test_thr05__recall,test_thr05__f1,test_thr05__specificity,test_thr05__roc_auc,test_thr05__tn,test_thr05__fp,test_thr05__fn,test_thr05__tp,test_thr05__threshold
+majority,0,0.625,0.625,1.0,0.7692307692307693,0.0,0.5,0,234,0,390,0.5

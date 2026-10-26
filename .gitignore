@@ -1,0 +1,11 @@
+# downloaded automatically by medmnist (see README)
+data/
+# local / generated
+__pycache__/
+*.pyc
+*.log
+.claude/
+# course handout and submission artefacts (not part of the code repository)
+Introduction_to_Artificial_Intelligence_Final_Project.pdf
+submission/
+report/

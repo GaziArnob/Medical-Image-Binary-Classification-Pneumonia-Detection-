@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, Dataset
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)  # medmnist needs the folder to exist (it is not in the git repo)
 OUT_DIR = ROOT / "results"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

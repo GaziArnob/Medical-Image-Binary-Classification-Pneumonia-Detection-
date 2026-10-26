@@ -9,7 +9,7 @@ Needs Python 3.11 or newer and an internet connection for the first run. A GPU i
 git clone https://github.com/GaziArnob/Medical-Image-Binary-Classification-Pneumonia-Detection-.git
 cd Medical-Image-Binary-Classification-Pneumonia-Detection-
 python -m venv .venv
-.venv\Scriptsctivate            # Windows   (macOS/Linux: source .venv/bin/activate)
+.venv\Scripts\activate            # Windows   (macOS/Linux: source .venv/bin/activate)
 pip install -r requirements.txt   # NVIDIA GPU: see the comment at the top of requirements.txt first
 python pneumonia/app.py           # web demo -> open http://localhost:8000
 ```

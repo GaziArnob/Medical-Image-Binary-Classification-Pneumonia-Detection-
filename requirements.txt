@@ -1,7 +1,13 @@
-# Versions used for the reported results (Python 3.11.9, Windows 11, GTX 1650 4GB)
-torch==2.6.0+cu124
-torchvision==0.21.0+cu124
+# Versions used for the reported results (Python 3.11.9, Windows 11, NVIDIA GTX 1650 4GB)
+# Python 3.11 or newer is recommended.
+torch==2.6.0
+torchvision==0.21.0
 medmnist==3.0.2
 scikit-learn==1.9.1
 numpy==2.4.6
 matplotlib==3.11.2
+# NVIDIA GPU (what the results were produced on): install the CUDA build of PyTorch first, then the rest:
+#   pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+#   pip install -r requirements.txt
+# Without a GPU the plain command works (everything runs on CPU, only slower):
+#   pip install -r requirements.txt

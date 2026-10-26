@@ -27,6 +27,9 @@ import torch.nn.functional as F
 from PIL import Image
 from sklearn.metrics import roc_auc_score, roc_curve
 
+for _stream in (sys.stdout, sys.stderr):  # avoid UnicodeEncodeError on Windows consoles / pipes
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).parent))
 from common import DEVICE, ROOT, DeepCNN, SmallCNN, load_split, resnet18
 
@@ -56,11 +59,15 @@ if not MODELS:
 DEFAULT = "deep_cnn_aug" if "deep_cnn_aug" in MODELS else next(iter(MODELS))
 
 TEST_X, TEST_Y = load_split("test")  # 28x28 uint8: what the models see (same images as the reported test results)
-try:
-    TEST_X224, y224 = load_split("test", 224)  # same images at 224x224, only for a clearer display
-    assert (y224 == TEST_Y).all()
-except Exception:
-    TEST_X224 = None
+# Optional sharper display images. Used only if the 224x224 file is already on disk (it is a 214 MB download, so the demo
+# never downloads it by itself); otherwise the 28x28 images are shown enlarged with smooth interpolation.
+TEST_X224 = None
+if (ROOT / "data" / "pneumoniamnist_224.npz").exists():
+    try:
+        TEST_X224, _y224 = load_split("test", 224)
+        assert (_y224 == TEST_Y).all()
+    except Exception:
+        TEST_X224 = None
 
 
 def prep(imgs28: np.ndarray, kind: str) -> torch.Tensor:
@@ -287,9 +294,9 @@ class Handler(BaseHTTPRequestHandler):
                 dict(i=int(i), prob=float(p[i]), truth=LABELS[int(y[i])], pred=LABELS[int(pred[i])]) for i in page_idx]))
         if parts[:2] == ["api", "test"] and parts[-1].endswith(".png"):
             i = int(parts[-1][:-4])
-            if "small" in q or TEST_X224 is None:
+            if "small" in q:  # what the models actually see (28x28, enlarged without smoothing)
                 return self._send(png_bytes(TEST_X[i]), "image/png")
-            return self._send(png_bytes(TEST_X224[i], scale=1), "image/png")
+            return self._send(to_png(display_image(i)), "image/png")
         if parts[:2] == ["api", "predict_test"]:
             i = int(parts[-1])
             pr = float(TEST_P[mid][i])

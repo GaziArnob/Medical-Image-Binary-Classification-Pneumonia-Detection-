@@ -18,6 +18,9 @@ import numpy as np
 import torch
 from sklearn.metrics import roc_curve
 
+for _stream in (sys.stdout, sys.stderr):  # avoid UnicodeEncodeError on Windows consoles / pipes
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, str(Path(__file__).parent))
 from common import (DATA_DIR, DEVICE, OUT_DIR, DeepCNN, SmallCNN, best_f1_threshold,
                     compute_metrics, count_params, load_split, make_loaders, predict,

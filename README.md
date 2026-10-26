@@ -3,6 +3,20 @@
 Normal vs. pneumonia chest X-rays (positive class = pneumonia) with CNNs and transfer learning.
 Levels attempted: **Basic, Intermediate, Advanced**. For research/education only, not clinical use.
 
+## Quick start (any PC: Windows, macOS, Linux)
+Needs Python 3.11 or newer and an internet connection for the first run. A GPU is optional (everything also runs on CPU, only slower).
+```
+git clone https://github.com/GaziArnob/Medical-Image-Binary-Classification-Pneumonia-Detection-.git
+cd Medical-Image-Binary-Classification-Pneumonia-Detection-
+python -m venv .venv
+.venv\Scriptsctivate            # Windows   (macOS/Linux: source .venv/bin/activate)
+pip install -r requirements.txt   # NVIDIA GPU: see the comment at the top of requirements.txt first
+python pneumonia/app.py           # web demo -> open http://localhost:8000
+```
+The demo works straight away because the trained models are in `models/`; the 28x28 test data (~4 MB) downloads automatically.
+Images are shown enlarged from 28x28. For sharper display (optional, 214 MB download) run once:
+`python -c "from medmnist import PneumoniaMNIST; PneumoniaMNIST(split='test', download=True, size=224, root='data')"`
+
 ## Setup
 ```
 pip install -r requirements.txt

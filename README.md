@@ -47,12 +47,12 @@ side-by-side comparison of 4 models (Basic CNN, Deep CNN, Deep CNN + augmentatio
 (report tables + figures); upload one image or a batch (CSV export). Research/education only; not for medical use.
 The saved demo models are single seed-0 copies, so their numbers can differ slightly from the multi-seed tables in the report.
 
-Optional free LLM (local, no API key): install [Ollama](https://ollama.com) and a small text model (e.g. `ollama pull qwen2.5:3b`);
-the "Ask the local LLM" button then gives a short comment on how far to trust the CNN output. This model cannot see the image.
-
-Vision LLMs were tried as an independent "second reader" and did NOT work: on 24 balanced test images `moondream` and
-`qwen2.5vl:3b` were at chance level (accuracy 0.50 and 0.54; they answered "no pneumonia" for almost every pneumonia image).
-The app therefore uses vision models only when you set `VERIFY_MODEL=<model>` explicitly. Small LLMs are not validated for radiology.
+"Ask a small LLM" button: works with only `pip install -r requirements.txt` (no extra program). On first use it downloads a small open model
+(`Qwen/Qwen2.5-0.5B-Instruct`, ~1 GB, once, from huggingface.co; behind a firewall set `HF_ENDPOINT=https://hf-mirror.com`) and runs it on CPU.
+The page always shows fixed "facts from the test data" (computed, reliable) and next to them the LLM's plain-language wording, labelled
+unverified (a 0.5B model can reword incorrectly; it is not allowed to add numbers). If the model cannot be downloaded, only the facts are shown.
+The LLM cannot see the image. Vision LLMs were tried as an independent "second reader" and did NOT work (`moondream`: 0.50, `qwen2.5vl:3b`: 0.54
+accuracy on 24 balanced test images). Optional: `VERIFY_MODEL=<model>` uses a local [Ollama](https://ollama.com) model instead.
 
 ## Layout
 - `pneumonia/common.py` — data loading, augmentation, models, training loop, metrics

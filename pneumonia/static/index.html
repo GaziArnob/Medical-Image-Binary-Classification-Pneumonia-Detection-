@@ -237,7 +237,7 @@ function resultHtml(r, truth, all) {
   if (all) h += `<table><tr><th>Model comparison</th><th class="n">P(pneumonia)</th><th>Prediction</th>${truth ? '<th></th>' : ''}</tr>` +
     all.map(a => `<tr><td>${a.label}</td><td class="n">${pct(a.prob)}</td><td>${a.pred}</td>${truth ? `<td style="color:var(--${a.correct ? 'ok' : 'bad'})">${a.correct ? '&#10003;' : '&#10007;'}</td>` : ''}</tr>`).join('') + '</table>';
   h += `<p class="muted camnote" ${$('cam').checked ? '' : 'hidden'}>Grad-CAM: warm colours mark regions that push the model towards &ldquo;pneumonia&rdquo;. It shows where the model looks, not that it is right.</p>`;
-  h += `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)"><button id="verify" type="button">Ask the local LLM (free) for a comment</button><div id="llmout" class="muted" aria-live="polite" style="margin-top:8px"></div></div>`;
+  h += `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)"><button id="verify" type="button">Ask a small LLM (free, runs locally) for a comment</button><div id="llmout" class="muted" aria-live="polite" style="margin-top:8px"></div></div>`;
   $('result').innerHTML = h; $('verify').onclick = verify;
 }
 async function showTest(i) {
@@ -246,7 +246,7 @@ async function showTest(i) {
   resultHtml(r, r.truth, all);
 }
 async function verify() {
-  const out = $('llmout'), btn = $('verify'); btn.disabled = true; out.textContent = 'Asking the local LLM… (first call can take a minute)';
+  const out = $('llmout'), btn = $('verify'); btn.disabled = true; out.textContent = 'Asking the LLM… (the first use downloads a ~1 GB model once, please wait)';
   const res = state.upload ? await fetch(`/api/verify?${q()}`, { method: 'POST', body: state.upload.file }) : await fetch(`/api/verify_test/${state.sel}?${q()}`);
   const v = await res.json(); btn.disabled = false;
   if (v.error) { out.textContent = v.error; return; }
@@ -256,9 +256,11 @@ async function verify() {
     const ag = llm === 'uncertain' ? 'LLM is uncertain' : (llm === cnn ? 'Agrees with the CNN' : 'Disagrees with the CNN');
     html = `<p style="margin:0 0 4px">${v.model} looked at the image: <b>${v.impression}</b> (${v.confidence}) <span class="pill ${llm === cnn ? 'ok' : llm === 'uncertain' ? 'warn2' : 'bad'}">${ag}</span></p><p style="margin:0 0 4px">${v.findings}</p>`;
   } else {
-    html = `<p style="margin:0 0 4px"><b>${v.model}</b> is text-only: it cannot see the image, it only comments on the CNN output.</p><p style="margin:0 0 4px">${v.findings}</p>`;
+    html = `<p style="margin:0 0 4px"><b>Facts from the test data:</b> ${v.facts}</p>` + (v.findings
+      ? `<p style="margin:0 0 4px"><b>LLM wording (${v.model}; unverified, can be wrong):</b> ${v.findings}</p>`
+      : `<p style="margin:0 0 4px">${v.note}</p>`);
   }
-  out.innerHTML = html + '<p style="margin:0">Small LLMs are not validated for radiology: sanity check only, never for medical decisions.</p>';
+  out.innerHTML = html + '<p style="margin:0">Small LLMs are not validated for medicine and cannot see the image: trust the facts, not the wording. Never use this for medical decisions.</p>';
 }
 $('file').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;

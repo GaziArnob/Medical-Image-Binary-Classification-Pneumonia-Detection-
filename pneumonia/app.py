@@ -184,7 +184,9 @@ def results_summary() -> list:
 # first use (~1 GB, from huggingface.co; behind a firewall set HF_ENDPOINT=https://hf-mirror.com), run on CPU, no API key.
 # If it cannot be loaded (no internet, not installed) a built-in template text is shown instead, clearly labelled.
 # Setting VERIFY_MODEL=<ollama model> switches to a local Ollama server (also allows vision models).
-HF_MODEL = os.environ.get("HF_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+HF_LABEL = "Qwen/Qwen2.5-0.5B-Instruct"
+_LOCAL_LLM = ROOT / "models" / "llm" / "qwen2.5-0.5b-instruct"  # copy this folder to another PC to use the LLM without internet
+HF_MODEL = os.environ.get("HF_MODEL", str(_LOCAL_LLM) if (_LOCAL_LLM / "config.json").exists() else HF_LABEL)
 _hf = {}
 llm_lock = threading.Lock()
 LLM_SYSTEM = ("You write short, careful comments for a student research demo of a chest X-ray classifier. "
@@ -277,14 +279,15 @@ def llm_second_opinion(png: bytes, mid: str, prob: float) -> dict:
         return ollama_opinion(png, mid, prob, mt)
     facts = template_comment(prob, mt)  # computed from the real test metrics: this is the reliable part
     try:
-        return dict(facts=facts, findings=hf_comment(facts), impression=None, mode="text", model=HF_MODEL)
+        return dict(facts=facts, findings=hf_comment(facts), impression=None, mode="text", model=HF_LABEL if HF_MODEL == str(_LOCAL_LLM) else HF_MODEL)
     except ValueError as e:  # the LLM answered but broke the "no new numbers" rule
-        return dict(facts=facts, findings=None, impression=None, mode="template", model=HF_MODEL,
+        return dict(facts=facts, findings=None, impression=None, mode="template", model=HF_LABEL,
                     note="The LLM's wording was rejected because it added numbers that are not in the data. Only the facts are shown.")
     except Exception as e:
         return dict(facts=facts, findings=None, impression=None, mode="template", model="built-in template",
-                    note=f"The LLM wording is not available ({type(e).__name__}). For it: pip install transformers and allow a one-time "
-                         f"download of {HF_MODEL} from huggingface.co (a mirror can be set with HF_ENDPOINT). Only the facts are shown.")
+                    note=f"The LLM wording is not available ({type(e).__name__}: {str(e)[:160]}). Needs: pip install transformers, and either one "
+                         f"download of {HF_LABEL} from huggingface.co (mirror: HF_ENDPOINT) or the folder models/llm/qwen2.5-0.5b-instruct copied from another PC. "
+                         "Only the facts are shown.")
 
 
 # ------------------------------------------------------------------ HTTP

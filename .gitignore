@@ -9,3 +9,5 @@ __pycache__/
 Introduction_to_Artificial_Intelligence_Final_Project.pdf
 submission/
 report/
+# 1 GB LLM weights, copied between PCs by hand (see README)
+models/llm/

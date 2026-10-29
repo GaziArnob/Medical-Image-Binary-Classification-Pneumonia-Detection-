@@ -51,6 +51,9 @@ The saved demo models are single seed-0 copies, so their numbers can differ slig
 (`Qwen/Qwen2.5-0.5B-Instruct`, ~1 GB, once, from huggingface.co; behind a firewall set `HF_ENDPOINT=https://hf-mirror.com`) and runs it on CPU.
 The page always shows fixed "facts from the test data" (computed, reliable) and next to them the LLM's plain-language wording, labelled
 unverified (a 0.5B model can reword incorrectly; it is not allowed to add numbers). If the model cannot be downloaded, only the facts are shown.
+**No internet / Hugging Face blocked?** Copy the folder `models/llm/qwen2.5-0.5b-instruct` (1 GB, not in git) from a PC where it works
+into the same place in the project on the other PC. The app uses it automatically and never contacts the network for the LLM.
+To create the folder on a PC with internet: `python -c "from transformers import AutoTokenizer as T, AutoModelForCausalLM as M; n='Qwen/Qwen2.5-0.5B-Instruct'; d='models/llm/qwen2.5-0.5b-instruct'; T.from_pretrained(n).save_pretrained(d); M.from_pretrained(n).save_pretrained(d)"`.
 The LLM cannot see the image. Vision LLMs were tried as an independent "second reader" and did NOT work (`moondream`: 0.50, `qwen2.5vl:3b`: 0.54
 accuracy on 24 balanced test images). Optional: `VERIFY_MODEL=<model>` uses a local [Ollama](https://ollama.com) model instead.
 
